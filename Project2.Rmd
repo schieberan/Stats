@@ -1,10 +1,10 @@
 ---
-  title: "Project 2--Modeling"
+title: "Project 2--Modeling"
 author: "Allison Schieber"
 date: '`r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
 output: 
-  html_document: 
-  theme: yeti
+html_document: 
+theme: yeti
 highlight: textmate
 code_folding: hide
 ---
@@ -73,7 +73,7 @@ fastfood_matrix <- fastfood_matrix %>%
 round(cor(fastfood_matrix), 2)
 ```
 
-**ANSWER:**
+**ANSWER:** All of the relationships between nutritional components in fast-food burgers could be described as moderately related at minimum, with the lowest relation at .52 between saturatedfat and carbs. Some relationships are particularly strong: there is a .98 relationship between totalfat and calories.
 
 B) Create a scatterplot with a fitted line to show the relationship between calories (x) and total fat (y) for fast-food burgers. Add an informative title and better axis labels than the default variable names, including units of measure.
 
@@ -101,11 +101,11 @@ fastfood_regression_points <- get_regression_points(fastfood_linear_model, newda
 fastfood_regression_points
 ```
 
-**ANSWER:**
+**ANSWER:** The model accurately predicted the total fat for Cookout burgers. The least accurate guess (ID 3) was only off by around ~7% the actual value for total fat.
 
 E) Suppose someone says, "We can interpret R^2^ as the percentage of calories in each burger that comes from fat." Explain why this is incorrect and give a better interpretation of the R^2^ value for this model in context. 
 
-**ANSWER:**
+**ANSWER:** This is incorrect because a better interpreation of what R^2^ represents is that the percentage of calories is a cause of the variation in the amount of fat in each burger.
 
 
 ### **Problem 2**
