@@ -98,14 +98,6 @@ ggplot(NULL, aes(satfat_mean)) +
 C) Assess your simulation results for normality using a density plot, a QQ plot, skewness value, and kurtosis value. Would it be reasonable to compute a traditional confidence interval for a proportion, assuming that this is also an independent random sample of fast food burgers? Explain.
 
 ```{r}
-ff_stats <- ffat %>% 
-  summarize(xbar = mean(saturatedfat), sd = sd(saturatedfat))
-ff_stats
-ggplot(ffat, aes(x = saturatedfat)) + 
-  geom_density() +
-  stat_function(fun = dnorm, 
-                args = list(ff_stats$xbar, ff_stats$sd),   
-                color = "red")
 ```
 
 ```{r qqplot}
@@ -209,19 +201,18 @@ result <- ifelse(side <= alpha, "reject the null hypothesis", "not reject the nu
 
 C) Statistically speaking, did the mercury and jalap pre-treatment make the smallpox vaccination significantly more effective, as measured by the number of pocks that appeared post-vaccination? How do you know? 
 
-**ANSWER:**
+**ANSWER:** Satistically speaking the mercury and jalap pre-treatment made the smallpox vaccination slightly more effective as evidenced in the distribution of pocks boxplot. 
 
 D) Conduct a traditional t-test for the question in (B). Print the results and state your decision about whether to reject Ho.
 
 ```{r}
 ttest = t.test(mj_smallpox$pocks ~ mj_smallpox$pretreatment, var.equal = TRUE)
 ttest
-
 ```
 
 E) Given the assumptions of the traditional two-sample t-test, is the p-value produced by the the `t.test` function reliable? Use evidence from your descriptive analysis and/or simulation to support your answer.
 
-**ANSWER:**
+**ANSWER:** The p-value produced by the t.test function is reliable as evidenced by the permutation resampling distance for the test statistic plot of simulation results. 
 
 
 ***
@@ -320,7 +311,7 @@ E) Using the results of the permutation resampling test, can we conclude at the 
 
 F) Why are the results of the bootstrap percentile interval and the traditional t-based confidence interval noticeably different for this problem? Which is more reliable? Explain.
 
-**ANSWER:**
+**ANSWER:** 
 
 
 ***
