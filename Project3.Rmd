@@ -67,24 +67,67 @@ Nutritionists recommend against eating fast food because it is high in sodium, s
 A) Create a summary to show the proportion of burgers with more than 22g of saturated fat and the number of data values used in that calculation.
 
 ```{r}
-
-summary()
-
+ffat <- filter(fast_food_data, saturatedfat > 22)
+ffsummary <- ffat %>%
+  summarize(n = n(), meansat = mean(ffat$saturatedfat), std_dev = sd(ffat$saturatedfat))
+ffsummary
 ```
 
 B) The `fastfood2017` dataset contains only a sample of available fast food burgers. Create a 95% bootstrap percentile interval to estimate the true proportion of all fast food burgers that have more than 22g of saturated fat.
 
 ```{r}
+sfat <- pull(ffat, saturatedfat)
+n <- length(sfat) #sample Size
+n
+sims <- 10^5
+satfat_mean <- numeric(sims)
+for(i in 1:sims){
+  satfat_mean[i] <- mean(sample(sfat, n, replace = TRUE))
+}
+quantile(satfat_mean, c(.025, .975))
+ggplot(NULL, aes(satfat_mean)) +
+  geom_density( fill = "gray") +
+  labs(title = "Bootstrap Distribution of Means",
+       x = "Mean Saturated Fat",
+       y = "Density") +
+  geom_vline(xintercept = quantile(satfat_mean), c(.05, .995), color = "blue") +
+  geom_vline(xintercept = mean(sfat), colour = "red", linetype = "dashed")
 
 ```
 
 C) Assess your simulation results for normality using a density plot, a QQ plot, skewness value, and kurtosis value. Would it be reasonable to compute a traditional confidence interval for a proportion, assuming that this is also an independent random sample of fast food burgers? Explain.
 
 ```{r}
-
+ff_stats <- ffat %>% 
+  summarize(xbar = mean(saturatedfat), sd = sd(saturatedfat))
+ff_stats
+ggplot(ffat, aes(x = saturatedfat)) + 
+  geom_density() +
+  stat_function(fun = dnorm, 
+                args = list(ff_stats$xbar, ff_stats$sd),   
+                color = "red")
 ```
 
-**ANSWER:**
+```{r qqplot}
+# Put your code here.
+ggplot(ffat, aes(sample = saturatedfat)) + 
+  stat_qq() +
+  stat_qq_line(color = "red")
+```
+
+```{r skewkurt}
+# Put your code here.
+library(moments)
+skewK <- tibble(statistic = c("Skewness", "Kurtosis", "Excess K"),
+                theory = c(0, 3, 0),
+                data   = round(c(skewness(ffat$saturatedfat), 
+                                 kurtosis(ffat$saturatedfat), 
+                                 kurtosis(ffat$saturatedfat) - 3), 
+                               2))
+print.data.frame(skewK, row.names = FALSE)
+```
+
+**ANSWER:** The skewness is almost 2 points away from zero and the kurtosis is more than 2 points higher than 3. The red theoretical line is similar but not close to the actual line for each of the graphs. From this I can infer that the recorded saturatedfat levels do not have a normal distribution. 
 
 D) According to the description, the burgers selected for inclusion in the dataset for the various restaurants were the smallest hamburger, the smallest cheeseburger, and some of the restaurant’s most well known larger burgers (e.g., Big Mac). Thus it is not a purely random sample from the population. How might this affect the bootstrap estimate?
 
@@ -156,6 +199,11 @@ ggplot(NULL, aes(x = randstat)) +
        x = "",
        y = "") +
   theme_classic()
+
+upper <- (sum(randstat >= stats) + 1) / (s + 1)
+lower <- (sum(randstat <= stats) + 1) / (s + 1)
+side <- 2 * min(lower, upper)
+result <- ifelse(side <= alpha, "reject the null hypothesis", "not reject the null hypothesis")
 
 ```
 
