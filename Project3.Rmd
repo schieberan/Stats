@@ -20,11 +20,9 @@ Load all packages and datasets here. Use `glimpse` to visualize the structure of
 Packages Used
 
 ```{r}
-library(dplyr)
-library(ggplot2)
 library(tidyverse)
+library(dplyr)
 library(moments)
-library(moderndive)
 ```
 
 Fast Food Data
@@ -78,7 +76,7 @@ B) The `fastfood2017` dataset contains only a sample of available fast food burg
 
 ```{r}
 fatgrams <- pull(ffsfat, saturatedfat)
-n <- length(justfat) #sample Size
+n <- length(fatgrams) #sample Size
 n
 sims <- 10^5
 satfat_mean <- numeric(sims)
@@ -108,7 +106,7 @@ kurtosis(satfat_mean)
 
 D) According to the description, the burgers selected for inclusion in the dataset for the various restaurants were the smallest hamburger, the smallest cheeseburger, and some of the restaurant’s most well known larger burgers (e.g., Big Mac). Thus it is not a purely random sample from the population. How might this affect the bootstrap estimate?
 
-**ANSWER:** 
+**ANSWER:** The bootstrap estimate would be very skewed as restaurants that select the smallest burger would have a significatly less fat value than the average fat across all burgers. 
 
 
 ***
@@ -150,8 +148,12 @@ ggplot(mj_smallpox, aes(x = pretreatment, y = pocks)) +
 B) Conduct a permutation resampling test to determine whether the means of the control and senna/syrup of roses groups are different. Include the appropriate null and alternative hypotheses, the test statistic, a plot of the simulation results, the p-value, and your statistical decision about whether to reject Ho.
 
 ```{r}
-stats <- msd$xbar[2] - msd$xbar[1]
+stats <- msd$xbar[1] - msd$xbar[2]
+stats
+```
 
+
+```{r}
 pocks <- mj_smallpox %>% filter(!is.na(pocks)) %>% pull(pocks)
 
 total <- length(pocks)
@@ -172,9 +174,7 @@ ggplot(NULL, aes(x = randstat)) +
   geom_histogram(color = "black", fill = "lightgreen", bins = 40) +
   geom_vline(xintercept = stats, color = "red", linetype = "dashed") +
   labs(title = "Permutation Resampling Distribution for Test Statistic",
-       subtitle = "The red dashed line represents the observed value of the test statistic",
-       x = "",
-       y = "") +
+       subtitle = "The red dashed line represents the observed value of the test statistic") +
   theme_classic()
 
 upper <- (sum(randstat >= stats) + 1) / (s + 1)
@@ -197,7 +197,7 @@ ttest
 
 E) Given the assumptions of the traditional two-sample t-test, is the p-value produced by the the `t.test` function reliable? Use evidence from your descriptive analysis and/or simulation to support your answer.
 
-**ANSWER:** The p-value produced by the t.test function is reliable as evidenced by the permutation resampling distance for the test statistic plot of simulation results. 
+**ANSWER:** 
 
 
 ***
@@ -286,13 +286,13 @@ ggplot(NULL, aes(x = mlb_s)) +
 D) Use the `t.test` function to compute a traditional 95% confidence interval for the difference between means.
 
 ```{r}
-mlb_ttest = t.test(mlb2013nyy$salary ~ mlb2013nyy$NYYorOther, alternative= "greater")
+mlb_ttest = t.test(mlb$salary ~ mlb$NYYorOther, alternative= "greater")
 mlb_ttest
 ```
 
 E) Using the results of the permutation resampling test, can we conclude at the $\alpha$ = 0.05 level of significance that the Yankee's mean salary was statistically larger than mean salary of the rest of the teams combined? Is the estimated difference given by your bootstrap perentile interval large enough to have practical significance, in context? Why or why not?
 
-**ANSWER:** 
+**ANSWER:** The estimated difference given by the bootstrap percentile interval was sufficently large enough to have practical significance. 
 
 F) Why are the results of the bootstrap percentile interval and the traditional t-based confidence interval noticeably different for this problem? Which is more reliable? Explain.
 
@@ -324,18 +324,23 @@ B) Conduct a permutation resampling test for the difference between the proporti
 
 ```{r}
 draft_test <- draft_stats$prop[1] - draft_stats$prop[2]
+draft_test
+```
+
+
+```{r}
 draftnumber <- draft %>% filter(!is.na(draftnumber)) %>% pull(draftnumber)
 
 total_draft <- length(draftnumber)
 group_draft <- draft_stats$n[1]
 
-ad <- .05
+alpha <- .05
 
-sd <- 10^5 - 1
+sims <- 10^5 - 1
 
-rand <- numeric(sd)
+rand <- numeric(sims)
 
-for (i in 1:sd) {
+for (i in 1:sims) {
   index <- sample(total_draft, group_draft)
   rand[i] <- mean(draftnumber[index] <= 195) - mean(draftnumber[-index] <= 195)
 }
@@ -349,13 +354,14 @@ ggplot(NULL, aes(x = rand)) +
        y = "") +
   theme_classic()
 
-pval_l<- (sum(rand <= draft_test) + 1) / (sd + 1)
-decisionss <- ifelse(pval_l <= ad, "reject the null hypothesis", "don't reject the null hypothesis")
+pval_l <- (sum(rand <= draft_test) + 1) / (sims + 1)
+pval_u <- (sum(rand >= draft_test) + 1) / (sims + 1)
+decisionss <- ifelse(pval_l <= alpha, "reject the null hypothesis", "don't reject the null hypothesis")
 ```
 
 C) Based on the permutation test, should we conclude that the process used to draw the draft numbers for 1970 was not sufficiently random? Explain.
 
-**ANSWER:**
+**ANSWER:** Based on the permutation test we can conclude that the process used to draw the draft numbers for 1970 was not suffiently random because the test stat is not close enough to zero.
 
 D) Selective Service changed the process by which the draft numbers were assigned during the 1970 drawing to increase the randomness and hopefully eliminate any sort of bias. Determine whether there was any statistically significant difference between the proportions of birthdays called up in the two halves of the year in 1971. Overall, fewer birthdays were called that year; the highest number was 125. Include the appropriate null and alternative hypotheses, the test statistic, a plot of the simulation results, the p-value, and your statistical decision about whether to reject Ho.
 
@@ -372,14 +378,21 @@ stats71 <- v1971 %>%
 print.data.frame(stats71, row.names = FALSE)
 
 ```
+```{r}
+pval_upper <- (sum(randstat >= draft_test) + 1) / (sims + 1)
+pval_lower <- (sum(randstat <= draft_test) + 1) / (sims + 1)
+pval_sides <- 2 * min(pval_l, pval_u)
+status <- ifelse(pval_lower <= alpha, "reject the null hypothesis", "do not reject the null hypothesis")
+```
+
 
 E) Based on the permutation test, should we conclude that the changes instituted by Selective Service resulted in a process that was sufficiently random? Explain.
 
-**ANSWER:**
+**ANSWER:** The changes institued by Selective Service resulted in a process that was more random that the previous year. The test stat was somewhat closer to 0.0 than it was the year before. This shows that it is more random, but for it to be sufficiently random it would probably need to be closer to zero. 
 
 F) Why can we not create a bootstrap percentile interval to estimate the difference in proportions in this problem? (Hint: Consider the sampling method.)
 
-**ANSWER:**
+**ANSWER:** Replacement is not used in this problem because birth dates are picked thorugh a lottery. Because of this, bootstrapping with replacement would lead to results that aren't relevant. 
 
 
 ***
