@@ -28,30 +28,30 @@ library(moments)
 Fast Food Data
 
 ```{r fastfooddata}
-fast_food_data <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/fastfood2017.csv"))
-glimpse(fast_food_data)
+fastfooddata <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/fastfood2017.csv"))
+glimpse(fastfooddata)
 ```
 
 Smallpox Data
 
 ```{r smallpoxdata}
-smallpox_data <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/smallpox.csv"))
-glimpse(smallpox_data)
+smallpoxdata <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/smallpox.csv"))
+glimpse(smallpoxdata)
 
 ```
 
 MLB Salary Data
 
 ```{r mlbsalarydata}
-mlb_salary_data <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/mlb2013.csv"))
-glimpse(mlb_salary_data)
+mlbsalarydata <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/mlb2013.csv"))
+glimpse(mlbsalarydata)
 ```
 
 Vietnam Draft Data
 
 ```{r vietnamdraftdata}
-vietnam_draft_data <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/vietnamdraft.csv"))
-glimpse(vietnam_draft_data)
+vietnamdraftdata <- read.csv(file = url("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/vietnamdraft.csv"))
+glimpse(vietnamdraftdata)
 ```
 
 **NOTE: Do not use `infer` or any other pre-packaged resampling packages/functions for these problems. Write your own sampling loops like we did in class (based on the MSRR textbook).**
@@ -65,7 +65,7 @@ Nutritionists recommend against eating fast food because it is high in sodium, s
 A) Create a summary to show the proportion of burgers with more than 22g of saturated fat and the number of data values used in that calculation.
 
 ```{r}
-ffsfat <- filter(fast_food_data, type == "Burger", !is.na(saturatedfat))
+ffsfat <- filter(fastfooddata, type == "Burger", !is.na(saturatedfat))
 #use mean to get fraction
 ffsummary <- ffsfat %>%
   summarize(n = n(), prop = mean(saturatedfat > 22))
@@ -75,17 +75,14 @@ ffsummary
 B) The `fastfood2017` dataset contains only a sample of available fast food burgers. Create a 95% bootstrap percentile interval to estimate the true proportion of all fast food burgers that have more than 22g of saturated fat.
 
 ```{r}
-fatgrams <- pull(ffsfat, saturatedfat)
-n <- length(fatgrams) #sample Size
-n
+fat <- pull(ffsfat, saturatedfat)
+n <- length(fat) #sample Size
 sims <- 10^5
 satfat_mean <- numeric(sims)
-satfat_mean
 for(i in 1:sims){
-  satfat_mean[i] <- mean(sample(fatgrams, n, replace = TRUE) > 22)
+  satfat_mean[i] <- mean(sample(fat, n, replace = TRUE) > 22)
 }
 quantile(satfat_mean, c(.025, .975))
-
 ```
 
 C) Assess your simulation results for normality using a density plot, a QQ plot, skewness value, and kurtosis value. Would it be reasonable to compute a traditional confidence interval for a proportion, assuming that this is also an independent random sample of fast food burgers? Explain.
@@ -97,7 +94,6 @@ ggplot() +
 ggplot(NULL, aes(sample = satfat_mean)) +
   stat_qq() + 
   stat_qq_line()
-quantile(satfat_mean, c(.025, .975))
 skewness(satfat_mean)
 kurtosis(satfat_mean)
 ```
@@ -125,62 +121,48 @@ Watson observed and counted the number of smallpox lesions that appeared on each
 A) Filter the dataset to extract the data for the control and mercury and jalap groups in Watson's first experiment only. Then compute the mean and standard deviation of the number of pocks in each group, as well as the sample sizes. Finally create a boxplot to compare the distribution of pocks in the two groups. 
 
 ```{r}
-mj_smallpox <- smallpox_data %>%
-  filter(experiment == 1) %>%
-  filter(pretreatment != "sennaandrose")
+conmercjal <- smallpoxdata %>% 
+  filter(source %in% c("early"), pretreatment %in% c("mercuryandjalap", "none")) %>% 
+  group_by(pretreatment) %>% 
+  summarize(n = n(), mean_rating = mean(pocks), std_dev = sd(pocks))
+conmercjal
+lol <- smallpoxdata %>%
+  filter(source %in% c("early"), pretreatment %in% c("mercuryandjalap", "none")) %>%
+  group_by(pretreatment)
 
-msd <- mj_smallpox %>%
-  group_by(pretreatment) %>%
-  summarize(xbar = mean(pocks),
-            stdv = sd(pocks),
-            n    = n())
-print.data.frame(msd, row.names = FALSE)
-
-ggplot(mj_smallpox, aes(x = pretreatment, y = pocks)) +
+ggplot(data = lol, aes(x = pretreatment, y = pocks)) +
   geom_boxplot() +
   coord_flip() +
-  labs(title = "Distribution of pocks",
-       x = "Pretreatment",
-       y = "Number of Pocks")
-
+  labs(y = "pocks")
 ```
 
 B) Conduct a permutation resampling test to determine whether the means of the control and senna/syrup of roses groups are different. Include the appropriate null and alternative hypotheses, the test statistic, a plot of the simulation results, the p-value, and your statistical decision about whether to reject Ho.
 
-```{r}
-stats <- msd$xbar[1] - msd$xbar[2]
-stats
-```
-
 
 ```{r}
-pocks <- mj_smallpox %>% filter(!is.na(pocks)) %>% pull(pocks)
-
-total <- length(pocks)
-group <- msd$n[2]
-
-a <- .05
-
-s <- 10^5 - 1
-
-randstat <- numeric(s)
-
-for (i in 1:s) {
-  index <- sample(total, group)
-  randstat[i] <- mean(pocks[index]) - mean(pocks[-index])
+teststat <- conmercjal$mean_rating[1] - conmercjal$mean_rating[2]
+NMpocks <- lol %>% filter(!is.na(pocks)) %>% pull(pocks)
+total_n <- length(NMpocks)
+group_n <- conmercjal$n[1]
+alpha <- .05
+sims <- 10^4 - 1
+randstat <- numeric(sims)
+for (i in 1:sims) {
+  index <- sample(total_n, group_n)
+  randstat[i] <- mean(NMpocks[index]) - mean(NMpocks[-index])
 }
-
 ggplot(NULL, aes(x = randstat)) +
-  geom_histogram(color = "black", fill = "lightgreen", bins = 40) +
-  geom_vline(xintercept = stats, color = "red", linetype = "dashed") +
+  geom_histogram(color = "gray", fill = "lightblue") +
+  geom_vline(xintercept = teststat, color = "blue", linetype = "dashed") +
   labs(title = "Permutation Resampling Distribution for Test Statistic",
-       subtitle = "The red dashed line represents the observed value of the test statistic") +
+       subtitle = "vertical dashed line indicates the observed value of the test statistic") +
   theme_classic()
-
-upper <- (sum(randstat >= stats) + 1) / (s + 1)
-lower <- (sum(randstat <= stats) + 1) / (s + 1)
-side <- 2 * min(lower, upper)
-result <- ifelse(side <= alpha, "reject the null hypothesis", "not reject the null hypothesis")
+pval_upper <- (sum(randstat >= teststat) + 1) / (sims + 1)
+pval_lower <- (sum(randstat <= teststat) + 1) / (sims + 1)
+pval_2side <- 2 * min(pval_lower, pval_upper)
+decision <- ifelse(pval_2side <= alpha, "reject the null hypothesis", "not reject the null hypothesis")
+pval_2side
+decision
 
 ```
 
@@ -191,13 +173,13 @@ C) Statistically speaking, did the mercury and jalap pre-treatment make the smal
 D) Conduct a traditional t-test for the question in (B). Print the results and state your decision about whether to reject Ho.
 
 ```{r}
-ttest = t.test(mj_smallpox$pocks ~ mj_smallpox$pretreatment, var.equal = TRUE)
+ttest <- t.test(lol$pocks ~ lol$pretreatment)
 ttest
 ```
 
 E) Given the assumptions of the traditional two-sample t-test, is the p-value produced by the the `t.test` function reliable? Use evidence from your descriptive analysis and/or simulation to support your answer.
 
-**ANSWER:** 
+**ANSWER:** The p-value produced by the t.test function is not close to zero, showing that it is not a reliable measure, given the assumptions of the traditional two-sample t-test. 
 
 
 ***
@@ -208,46 +190,36 @@ In 2013, the New York Yankees had the highest average team salary among all Majo
 A) Use `mutate` to add a new variable to the dataset that identifies players according to whether they played for the New York Yankees (NYY) or one of the other teams (OTH). Then `summarize` mean, standard deviation, and n for salary in each group (NYY versus OTH). Also create a boxplot to compare salary distributions for the NYY and OTH groups. 
 
 ```{r}
-mlb <- mlb_salary_data %>%
+mlb <- mlbsalarydata %>%
   mutate(NYYorOther = ifelse(team == "New York Yankees", "NYY", "OTH"))
-
 salary_stats <- mlb %>%
   group_by(NYYorOther) %>%
   summarize(xbar = mean(salary),
             stdv = sd(salary),
             n    = n())
 print.data.frame(salary_stats, row.names = FALSE)
-
 ggplot(mlb, aes(x = NYYorOther, y = salary)) +
   geom_boxplot() +
   coord_flip() +
   labs(title = "Salaries of MLB Teams",
        x = "Teams",
        y = "Salaries")
-
 ```
 
 B) Conduct a permutation resampling test to determine whether the Yankees' mean was statistically larger than the mean of the rest of the league combined. Include the appropriate null and alternative hypotheses, the test statistic, a plot of the simulation results, the p-value, and your statistical decision about whether to reject Ho.
 
 ```{r}
-testmlb <- salary_stats$xbar[2] - salary_stats$xbar[1]
-
+testmlb <- salary_stats$xbar[1] - salary_stats$xbar[2]
 salary <- mlb %>% filter(!is.na(salary)) %>% pull(salary)
-
 total_mlb <- length(salary)
-group_mlb <- salary_stats$n[2]
-
+group_mlb <- salary_stats$n[1]
 al_mlb <- .05
-
 si_mlb <- 10^5 - 1
-
 randstat <- numeric(sims)
-
 for (i in 1:si_mlb) {
   index <- sample(total_mlb, group_mlb)
   randstat[i] <- mean(salary[index]) - mean(salary[-index])
 }
-
 ggplot(NULL, aes(x = randstat)) +
   geom_histogram(color = "black", fill = "lightpurple", bins = 40) +
   geom_vline(xintercept = testmlb, color = "green", linetype = "dashed") +
@@ -256,37 +228,29 @@ ggplot(NULL, aes(x = randstat)) +
        x = "",
        y = "") +
   theme_classic()
-
-
 ```
 
 C) Compute a 95% bootstrap percentile interval to estimate the difference between the two group means. Also create a density plot to visualize the bootstrap sampling distribution.
 
 ```{r}
 n <- length(mlb$salary)
-
 si <- 10^5
-
 mlb_s <- numeric(si)
-
 for (i in 1:si) {
   mlb_s[i] <- mean(sample(mlb$salary, n, replace = TRUE))
 }
-
 quantile(mlb_s, c(.025, .975))
-
 ggplot(NULL, aes(x = mlb_s)) +
   geom_density() +
   labs(title = "MLB Team Salaries Density Plot",
        x = "Salaries",
        y = "Density (%)")
-
 ```
 
 D) Use the `t.test` function to compute a traditional 95% confidence interval for the difference between means.
 
 ```{r}
-mlb_ttest = t.test(mlb$salary ~ mlb$NYYorOther, alternative= "greater")
+mlb_ttest <- t.test(mlb$salary ~ mlb$NYYorOther)
 mlb_ttest
 ```
 
@@ -296,7 +260,7 @@ E) Using the results of the permutation resampling test, can we conclude at the 
 
 F) Why are the results of the bootstrap percentile interval and the traditional t-based confidence interval noticeably different for this problem? Which is more reliable? Explain.
 
-**ANSWER:** 
+**ANSWER:** The results of the bootstrap percentile interval and the traditional t-based confidence interval are noticeably different for this problem. I think that the bootstrap confidence interval is more reliable in this case because it more accurately aligns with true group means. 
 
 
 ***
@@ -307,44 +271,32 @@ In December 1969, the U.S. Selective Service System conducted a lottery to a det
 A) Compute the proportion of birthdays in each half of the year that were drafted in 1970, as well as the number of days in each half of the year.
 
 ```{r}
-draft <- vietnam_draft_data %>%
+draft <- vietnamdraftdata %>%
   filter(draftyear == 1970)
-
 draft_stats <- draft %>%
   filter(!is.na(draftnumber)) %>%
   group_by(halfyear) %>%
-  summarize(prop = mean(draftnumber <= 195),
+  summarize(xbar = mean(draftnumber <= 195),
             stdv = sd(draftnumber),
             n    = n())
 print.data.frame(draft_stats, row.names = FALSE)
-
 ```
 
 B) Conduct a permutation resampling test for the difference between the proportions to determine whether the process was fair or biased against birthdays in the second half of the year (i.e., were a greater proportion of birthdays in the second half of the year called up than in the first?). Write your own sampling loop like we did in class (based on the MSRR textbook).Include the appropriate null and alternative hypotheses, the test statistic, a plot of the simulation results, the p-value, and your statistical decision about whether to reject Ho.
 
-```{r}
-draft_test <- draft_stats$prop[1] - draft_stats$prop[2]
-draft_test
-```
-
 
 ```{r}
+draft_test <- draft_stats$xbar[1] - draft_stats$xbar[2]
 draftnumber <- draft %>% filter(!is.na(draftnumber)) %>% pull(draftnumber)
-
 total_draft <- length(draftnumber)
 group_draft <- draft_stats$n[1]
-
-alpha <- .05
-
+ad <- .05
 sims <- 10^5 - 1
-
 rand <- numeric(sims)
-
 for (i in 1:sims) {
   index <- sample(total_draft, group_draft)
   rand[i] <- mean(draftnumber[index] <= 195) - mean(draftnumber[-index] <= 195)
 }
-
 ggplot(NULL, aes(x = rand)) +
   geom_histogram(color = "black", fill = "lightred", bins = 40) +
   geom_vline(xintercept = draft_test, color = "blue", linetype = "dashed") +
@@ -353,10 +305,9 @@ ggplot(NULL, aes(x = rand)) +
        x = "",
        y = "") +
   theme_classic()
-
 pval_l <- (sum(rand <= draft_test) + 1) / (sims + 1)
 pval_u <- (sum(rand >= draft_test) + 1) / (sims + 1)
-decisionss <- ifelse(pval_l <= alpha, "reject the null hypothesis", "don't reject the null hypothesis")
+decisionss <- ifelse(pval_l <= ad, "reject the null hypothesis", "don't reject the null hypothesis")
 ```
 
 C) Based on the permutation test, should we conclude that the process used to draw the draft numbers for 1970 was not sufficiently random? Explain.
@@ -366,9 +317,8 @@ C) Based on the permutation test, should we conclude that the process used to dr
 D) Selective Service changed the process by which the draft numbers were assigned during the 1970 drawing to increase the randomness and hopefully eliminate any sort of bias. Determine whether there was any statistically significant difference between the proportions of birthdays called up in the two halves of the year in 1971. Overall, fewer birthdays were called that year; the highest number was 125. Include the appropriate null and alternative hypotheses, the test statistic, a plot of the simulation results, the p-value, and your statistical decision about whether to reject Ho.
 
 ```{r}
-v1971 <- vietnam_draft_data %>%
+v1971 <- vietnamdraftdata %>%
   filter(draftyear == 1971)
-
 stats71 <- v1971 %>%
   filter(!is.na(draftnumber)) %>%
   group_by(halfyear) %>%
@@ -378,6 +328,8 @@ stats71 <- v1971 %>%
 print.data.frame(stats71, row.names = FALSE)
 
 ```
+
+
 ```{r}
 pval_upper <- (sum(randstat >= draft_test) + 1) / (sims + 1)
 pval_lower <- (sum(randstat <= draft_test) + 1) / (sims + 1)
@@ -398,7 +350,7 @@ F) Why can we not create a bootstrap percentile interval to estimate the differe
 ***
 ### Session Info
 
-**Names of Collaborators**: Eddie Grabert, Micheal Kim
+**Names of Collaborators**: Eddie Grabert, Micheal Kim, Megan Holland
 
 ```{r}
 sessionInfo()
